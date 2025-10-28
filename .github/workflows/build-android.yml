@@ -1,0 +1,118 @@
+name: Build Android (Signed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version (e.g., 1.2.3 or 1.2.3+45)'
+        required: false
+  push:
+    tags:
+      - 'v*'
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Compute version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT_VERSION="${{ github.event.inputs.version || '' }}"
+          REF_NAME="${GITHUB_REF_NAME:-}"
+          CANDIDATE="$INPUT_VERSION"
+          if [[ -z "$CANDIDATE" && "$GITHUB_REF_TYPE" == "tag" ]]; then
+            CANDIDATE="$REF_NAME"
+          fi
+          # strip leading v if present
+          CANDIDATE="${CANDIDATE#v}"
+          BUILD_NAME=""
+          BUILD_NUMBER=""
+          if [[ "$CANDIDATE" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(\+([0-9]+))?$ ]]; then
+            BUILD_NAME="${BASH_REMATCH[1]}"
+            if [[ -n "${BASH_REMATCH[3]:-}" ]]; then
+              BUILD_NUMBER="${BASH_REMATCH[3]}"
+            fi
+          fi
+          if [[ -z "$BUILD_NAME" ]]; then
+            # fallback: read from pubspec.yaml
+            PUBSPEC_VER=$(grep -E '^version:' pubspec.yaml | awk '{print $2}' || true)
+            PUBSPEC_VER=${PUBSPEC_VER#v}
+            if [[ "$PUBSPEC_VER" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(\+([0-9]+))?$ ]]; then
+              BUILD_NAME="${BASH_REMATCH[1]}"
+              if [[ -n "${BASH_REMATCH[3]:-}" ]]; then BUILD_NUMBER="${BASH_REMATCH[3]}"; fi
+            else
+              BUILD_NAME="1.0.0"
+            fi
+          fi
+          if [[ -z "$BUILD_NUMBER" ]]; then
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+          echo "build_name=$BUILD_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Resolved build: name=$BUILD_NAME number=$BUILD_NUMBER"
+
+      - name: Prepare Android signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p android/app
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          STORE_FILE_PATH="$(pwd)/android/app/upload-keystore.jks"
+          cat > android/app/key.properties <<EOF
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyPassword=${ANDROID_KEY_ALIAS_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          storeFile=${STORE_FILE_PATH}
+          EOF
+
+      - name: Build signed APKs (split per ABI)
+        run: |
+          flutter build apk --release --split-per-abi \
+            --build-name "${{ steps.version.outputs.build_name }}" \
+            --build-number "${{ steps.version.outputs.build_number }}"
+
+      - name: Build signed App Bundle (AAB)
+        run: |
+          flutter build appbundle --release \
+            --build-name "${{ steps.version.outputs.build_name }}" \
+            --build-number "${{ steps.version.outputs.build_number }}"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks-signed-${{ steps.version.outputs.build_name }}+${{ steps.version.outputs.build_number }}
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-signed-${{ steps.version.outputs.build_name }}+${{ steps.version.outputs.build_number }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
