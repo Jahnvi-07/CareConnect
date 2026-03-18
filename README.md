@@ -1,16 +1,35 @@
-# care_connect
+# Care Connect 🏥
 
-A new Flutter project.
+Care Connect is a healthcare support mobile application built using Flutter.  
+It aims to connect shelters with caregivers and provide easy access to wellness resources.
 
-## Getting Started
+## 🚀 Features
+- User-friendly interface for seamless navigation  
+- Connects shelters with caregivers  
+- Provides access to healthcare and wellness resources  
+- Secure user authentication (in progress)  
+- Cross-platform support (Android & iOS)
 
-This project is a starting point for a Flutter application.
+## 🛠️ Tech Stack
+- Flutter  
+- Dart  
 
-A few resources to get you started if this is your first Flutter project:
+## 📱 Screens (Work in Progress)
+- Login / Signup  
+- Dashboard  
+- Resource Access  
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 📌 Project Status
+🚧 Currently under development  
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🎯 Future Improvements
+- Firebase integration for backend  
+- Real-time communication features  
+- Improved UI/UX design  
+- Deployment on Play Store  
+
+## 🤝 Contribution
+This is a personal project, but suggestions are welcome!
+
+## 📧 Contact
+Jahnvi Sharma  
