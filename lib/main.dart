@@ -16,8 +16,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await SupabaseService.initialize(
-      url: 'https://gvkrathyuspuvoofkhqm.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2a3JhdGh5dXNwdXZvb2ZraHFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNDQ5ODQsImV4cCI6MjA3NTcyMDk4NH0.Oaj0l9oDz-wYz5QmVX3urJhixVyPqOtXW_W9ltBuFeM',
+      url: 'https://frfybwvxquxebbkleawi.supabase.co',
+      anonKey: 'sb_publishable_g1yEXIjFYf1vZY-Iwpx4wQ_9cqdQror',
     ).timeout(const Duration(seconds: 6));
   } catch (e) {
     debugPrint('Supabase init failed: ' + e.toString());
